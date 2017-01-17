@@ -19,7 +19,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	public String getMatrikelNumbers() {
-		throw new NotImplementedException();
+		return "2441890,2255840,xxxxxx";
 	}
 
 	@Override
