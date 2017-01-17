@@ -17,6 +17,8 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	protected double[] scaling;
 	protected double[] translation;
 
+	private List<List<Object>> traindata;
+
 	@Override
 	public String getMatrikelNumbers() {
 		return "2441890,2255840,xxxxxx";
@@ -24,7 +26,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected void learnModel(List<List<Object>> data) {
-		throw new NotImplementedException();
+		this.traindata = data;
 	}
 
 	@Override
@@ -44,7 +46,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected Object vote(List<Pair<List<Object>, Double>> subset) {
-		throw new NotImplementedException();
+		return this.getWinner(this.getUnweightedVotes(subset));
 	}
 
 	@Override
