@@ -41,7 +41,21 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected Object getWinner(Map<Object, Double> votes) {
-		throw new NotImplementedException();
+	    double maxVote = 0;
+	    Object maxObject = null;
+	    for (Map.Entry<Object, Double> entry : votes.entrySet()) {
+	        if (maxObject == null) {
+	            maxVote = entry.getValue();
+	            maxObject = entry.getKey();
+            }
+
+            if (entry.getValue() > maxVote) {
+                maxVote = entry.getValue();
+                maxObject = entry.getKey();
+            }
+        }
+
+        return maxObject;
 	}
 
 	@Override
