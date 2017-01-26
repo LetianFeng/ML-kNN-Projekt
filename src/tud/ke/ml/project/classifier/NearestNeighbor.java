@@ -1,11 +1,11 @@
 package tud.ke.ml.project.classifier;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import tud.ke.ml.project.util.Pair;
+import weka.core.ListOptions;
 
 /**
  * This implementation assumes the class attribute is always available (but probably not set).
@@ -51,7 +51,29 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected List<Pair<List<Object>, Double>> getNearest(List<Object> data) {
-		throw new NotImplementedException();
+		List<Pair<List<Object>, Double>> distances = new ArrayList<>();
+		// determineManhattanDistance
+        for (List<Object> instance2 : this.traindata)
+            if (!data.equals(instance2))
+                distances.add(new Pair<List<Object>, Double>(instance2, this.determineManhattanDistance(data, instance2)));
+
+		// sort list distances
+		Collections.sort(distances, new Comparator<Pair<List<Object>, Double>>() {
+            @Override
+            public int compare(Pair<List<Object>, Double> pair1, Pair<List<Object>, Double> pair2) {
+                if (pair1.getB() == pair2.getB())
+                    return 0;
+                if (pair1.getB() > pair2.getB())
+                    return 1;
+                return -1;
+            }
+        });
+
+		// remove the last element till the list has the size as getkNearest()
+		while (distances.size() > this.getkNearest())
+			distances.remove(distances.size() - 1);
+
+		return  distances;
 	}
 
 	@Override
