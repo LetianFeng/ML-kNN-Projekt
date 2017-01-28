@@ -31,7 +31,22 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected Map<Object, Double> getUnweightedVotes(List<Pair<List<Object>, Double>> subset) {
-		throw new NotImplementedException();
+
+	    Map<Object, Double> result = new HashMap<>();
+
+	    // get class attribute in nearest train data & put into the result map
+	    for (Pair<List<Object>, Double> pair : subset){
+	        Object classAttribute = pair.getA().get(this.getClassAttribute());
+
+	        // if class attribute doesn't exist in  the result map
+	        if (!result.containsKey(classAttribute))
+	            result.put(classAttribute, 0.0);
+	        // if already existed in the map, then add 1 to the entry-value
+	        else
+	            result.put(classAttribute, result.get(classAttribute) + 1);
+        }
+
+        return result;
 	}
 
 	@Override
@@ -42,36 +57,41 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	@Override
 	protected Object getWinner(Map<Object, Double> votes) {
 	    double maxVote = 0;
-	    Object maxObject = null;
-	    for (Map.Entry<Object, Double> entry : votes.entrySet()) {
-	        if (maxObject == null) {
-	            maxVote = entry.getValue();
-	            maxObject = entry.getKey();
-            }
+	    Object maxAttribute = null;
 
-            if (entry.getValue() > maxVote) {
+	    // find the class attribute with biggest vote in the map
+	    for (Map.Entry<Object, Double> entry : votes.entrySet()) {
+	        // save first attribute & vote in maxAttribute & maxVote
+            // or if a entry has larger vote, update them
+            if (maxAttribute == null || entry.getValue() > maxVote) {
                 maxVote = entry.getValue();
-                maxObject = entry.getKey();
+                maxAttribute = entry.getKey();
             }
         }
 
-        return maxObject;
+        return maxAttribute;
 	}
 
 	@Override
 	protected Object vote(List<Pair<List<Object>, Double>> subset) {
-		return this.getWinner(this.getUnweightedVotes(subset));
+	    // select method to get votes depending on if it is inverse weighting
+		if (this.isInverseWeighting())
+			return this.getWinner(this.getWeightedVotes(subset));
+		else
+			return this.getWinner(this.getUnweightedVotes(subset));
 	}
 
 	@Override
 	protected List<Pair<List<Object>, Double>> getNearest(List<Object> data) {
-		List<Pair<List<Object>, Double>> distances = new ArrayList<>();
-		// determineManhattanDistance
-        for (List<Object> instance2 : this.traindata)
-            if (!data.equals(instance2))
-                distances.add(new Pair<List<Object>, Double>(instance2, this.determineManhattanDistance(data, instance2)));
 
-		// sort list distances
+		List<Pair<List<Object>, Double>> distances = new ArrayList<>();
+
+		// determineManhattanDistance
+        for (List<Object> trainInstance : this.traindata)
+            if (!data.equals(trainInstance))
+                distances.add(new Pair<>(trainInstance, this.determineManhattanDistance(trainInstance, data)));
+
+		// sort the list distances
 		Collections.sort(distances, new Comparator<Pair<List<Object>, Double>>() {
             @Override
             public int compare(Pair<List<Object>, Double> pair1, Pair<List<Object>, Double> pair2) {
@@ -92,7 +112,41 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected double determineManhattanDistance(List<Object> instance1, List<Object> instance2) {
-		throw new NotImplementedException();
+
+	    double distance = 0.0;
+        List<Object> trainInstance = new ArrayList<>();
+        List<Object> testInstance = new ArrayList<>();
+
+        // remove class attribute from train instance
+        if (instance1.size() > instance2.size()) {
+            trainInstance.addAll(instance1);
+            trainInstance.remove(this.getClassAttribute());
+
+            testInstance.addAll(instance2);
+        } else if (instance1.size() < instance2.size()) {
+            trainInstance.addAll(instance2);
+            trainInstance.remove(this.getClassAttribute());
+
+            testInstance.addAll(instance1);
+        } else {
+            trainInstance.addAll(instance1);
+            testInstance.addAll(instance2);
+        }
+
+        for (int i = 0; i < trainInstance.size(); i++) {
+            Object trainAttribute = trainInstance.get(i);
+            Object testAttribute = testInstance.get(i);
+
+            // if symbolic attribute, use 0/1 distance, otherwise abs(v1 -v2)
+            if (trainAttribute instanceof String) {
+                if (!trainAttribute.equals(testAttribute))
+                    distance += 1;
+            } else {
+                distance += Math.abs((Double)trainAttribute - (Double)testAttribute);
+            }
+        }
+
+		return distance;
 	}
 
 	@Override
