@@ -146,14 +146,27 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
         List<Object> trainInstance = new ArrayList<>();
         List<Object> testInstance = new ArrayList<>();
 
-		trainInstance.addAll(instance1);
-		testInstance.addAll(instance2);
 
         // remove class attribute from train instance
-        if (instance1.size() > instance2.size())
-            trainInstance.remove(this.getClassAttribute());
-        else if (instance1.size() < instance2.size())
-            trainInstance.remove(this.getClassAttribute());
+        if (instance1.size() > instance2.size()) {
+
+			trainInstance.addAll(instance1);
+			testInstance.addAll(instance2);
+
+			trainInstance.remove(this.getClassAttribute());
+		} else if (instance1.size() < instance2.size()) {
+
+			trainInstance.addAll(instance2);
+			testInstance.addAll(instance1);
+
+			trainInstance.remove(this.getClassAttribute());
+		} else {
+        	trainInstance.addAll(instance1);
+			testInstance.addAll(instance2);
+			
+			trainInstance.remove(this.getClassAttribute());
+			testInstance.remove(this.getClassAttribute());
+		}
 
         for (int i = 0; i < trainInstance.size(); i++) {
             Object trainAttribute = trainInstance.get(i);
@@ -183,10 +196,25 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 		testInstance.addAll(instance2);
 
 		// remove class attribute from train instance
-		if (instance1.size() > instance2.size())
+		if (instance1.size() > instance2.size()) {
+
+			trainInstance.addAll(instance1);
+			testInstance.addAll(instance2);
+
 			trainInstance.remove(this.getClassAttribute());
-		else if (instance1.size() < instance2.size())
+		} else if (instance1.size() < instance2.size()) {
+
+			trainInstance.addAll(instance2);
+			testInstance.addAll(instance1);
+
 			trainInstance.remove(this.getClassAttribute());
+		} else {
+			trainInstance.addAll(instance1);
+			testInstance.addAll(instance2);
+
+			trainInstance.remove(this.getClassAttribute());
+			testInstance.remove(this.getClassAttribute());
+		}
 
 		for (int i = 0; i < trainInstance.size(); i++) {
 			Object trainAttribute = trainInstance.get(i);
