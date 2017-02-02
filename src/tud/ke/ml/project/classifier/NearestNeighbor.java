@@ -181,8 +181,13 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
                     distance += 1;
             } else {
             	if (this.isNormalizing()) {
-                    trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
-                    testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
+            	    if (i < this.getClassAttribute()) {
+                        trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
+                        testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
+                    } else {
+                        trainAttribute = ((Double) trainAttribute - translation[i+1]) / scaling[i+1];
+                        testAttribute = ((Double) testAttribute - translation[i+1]) / scaling[i+1];
+                    }
                 }
 
                 distance += Math.abs((Double)trainAttribute - (Double)testAttribute);
@@ -226,15 +231,20 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 			Object testAttribute = testInstance.get(i);
 
 			// if symbolic attribute, use 0/1 distance, otherwise abs(v1 -v2)
-			if (trainAttribute instanceof String) {
-				if (!trainAttribute.equals(testAttribute))
-					distance += 1;
-			} else {
+			if (trainAttribute instanceof Double) {
                 if (this.isNormalizing()) {
-                    trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
-                    testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
+                    if (i < this.getClassAttribute()) {
+                        trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
+                        testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
+                    } else {
+                        trainAttribute = ((Double) trainAttribute - translation[i+1]) / scaling[i+1];
+                        testAttribute = ((Double) testAttribute - translation[i+1]) / scaling[i+1];
+                    }
                 }
-				distance += Math.abs(Math.pow((Double)trainAttribute - (Double)testAttribute, 2));
+                distance += Math.abs(Math.pow((Double)trainAttribute - (Double)testAttribute, 2));
+			} else {
+                if (!trainAttribute.equals(testAttribute))
+                    distance += 1;
 			}
 		}
 
@@ -267,7 +277,9 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 				}
 
 				arrays[0][i] = min; // translation
-				arrays[1][i] = max - min; // scaling
+                arrays[1][i] = max - min; // scaling
+                if (max == min)
+                    arrays[1][i] = 1;
 
 			}
 		}
