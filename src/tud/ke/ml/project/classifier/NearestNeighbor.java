@@ -109,6 +109,10 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	@Override
 	protected List<Pair<List<Object>, Double>> getNearest(List<Object> data) {
 
+		double[][] norm = this.normalizationScaling();
+		this.translation = norm[0];
+		this.scaling = norm[1];
+
 		List<Pair<List<Object>, Double>> distances = new ArrayList<>();
 
 		// determineManhattanDistance
@@ -146,8 +150,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
         List<Object> trainInstance = new ArrayList<>();
         List<Object> testInstance = new ArrayList<>();
 
-
-        // remove class attribute from train instance
+        // remove class attribute from train & test instance
         if (instance1.size() > instance2.size()) {
 
 			trainInstance.addAll(instance1);
@@ -163,7 +166,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 		} else {
         	trainInstance.addAll(instance1);
 			testInstance.addAll(instance2);
-			
+
 			trainInstance.remove(this.getClassAttribute());
 			testInstance.remove(this.getClassAttribute());
 		}
@@ -177,6 +180,11 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
                 if (!trainAttribute.equals(testAttribute))
                     distance += 1;
             } else {
+            	if (this.isNormalizing()) {
+                    trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
+                    testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
+                }
+
                 distance += Math.abs((Double)trainAttribute - (Double)testAttribute);
             }
         }
@@ -192,10 +200,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 		List<Object> trainInstance = new ArrayList<>();
 		List<Object> testInstance = new ArrayList<>();
 
-		trainInstance.addAll(instance1);
-		testInstance.addAll(instance2);
-
-		// remove class attribute from train instance
+		// remove class attribute from train & test instance
 		if (instance1.size() > instance2.size()) {
 
 			trainInstance.addAll(instance1);
@@ -225,6 +230,10 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 				if (!trainAttribute.equals(testAttribute))
 					distance += 1;
 			} else {
+                if (this.isNormalizing()) {
+                    trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
+                    testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
+                }
 				distance += Math.abs(Math.pow((Double)trainAttribute - (Double)testAttribute, 2));
 			}
 		}
@@ -236,7 +245,33 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected double[][] normalizationScaling() {
-		throw new NotImplementedException();
-	}
+		int amountOfAttributes = this.traindata.get(0).size();
+		double[][] arrays = new double[2][amountOfAttributes];
 
+		if (this.isNormalizing()) {
+
+			for (int i = 0; i < amountOfAttributes; i++) {
+				double max = - Double.MAX_VALUE;
+				double min = Double.MAX_VALUE;
+
+				for (List<Object> instance : this.traindata) {
+					Object attribute = instance.get(i);
+
+					if (attribute instanceof Double) {
+						max = ((Double) attribute).compareTo(max) > 0 ? (double) attribute : max;
+						min = ((Double) attribute).compareTo(min) < 0 ? (double) attribute : min;
+					} else {
+						max = 0;
+						min = 0;
+					}
+				}
+
+				arrays[0][i] = min; // translation
+				arrays[1][i] = max - min; // scaling
+
+			}
+		}
+
+		return arrays;
+	}
 }
