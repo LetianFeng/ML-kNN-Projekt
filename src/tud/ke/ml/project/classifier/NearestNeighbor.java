@@ -155,10 +155,19 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 		while (distances.size() > this.getkNearest())
 			distances.remove(distances.size() - 1);
 
+		// TODO change the over while to
+        // List<Pair<List<Object>, Double>> result = new ArrayList<>();
+        // while (result.size() < this.getkNearest())
+        //      get sublist of instances with min distance
+        //      if (sublist.size() + result.size() < this.getkNearest())
+        //          result.addAll(sublist);
+        //      else
+        //          result.add(randomElement(sublist))
+
 		return  distances;
 	}
 
-	@Override
+    @Override
 	protected double determineManhattanDistance(List<Object> instance1, List<Object> instance2) {
 
 	    double distance = 0.0;
