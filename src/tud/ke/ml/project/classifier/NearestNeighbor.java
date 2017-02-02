@@ -82,16 +82,32 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	@Override
 	protected Object getWinner(Map<Object, Double> votes) {
 	    double maxVote = 0;
-	    Object maxAttribute = null;
+        Object maxAttribute = null;
+	    Map<Object, Double> winners = new HashMap<>();
 
 	    // find the class attribute with biggest vote in the map
 	    for (Map.Entry<Object, Double> entry : votes.entrySet()) {
 	        // save first attribute & vote in maxAttribute & maxVote
             // or if a entry has larger vote, update them
-            if (maxAttribute == null || entry.getValue() > maxVote) {
+            if (maxAttribute == null) {
                 maxVote = entry.getValue();
                 maxAttribute = entry.getKey();
+                winners.put(entry.getKey(), entry.getValue());
             }
+            if (entry.getValue() < maxVote)
+                continue;
+            if (entry.getValue() > maxVote) {
+                maxVote = entry.getValue();
+                maxAttribute = entry.getKey();
+                winners = new HashMap<>();
+            }
+            winners.put(entry.getKey(), entry.getValue());
+        }
+
+        if (winners.size() > 1) {
+	        Random rand = new Random();
+	        int n = rand.nextInt(winners.size());
+	        maxAttribute = new LinkedList<Object>(winners.keySet()).get(n);
         }
 
         return maxAttribute;
@@ -256,11 +272,15 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	@Override
 	protected double[][] normalizationScaling() {
 		int amountOfAttributes = this.traindata.get(0).size();
+		// initialize arrays for translation(arrays[0]) & scaling(arrays[1])
 		double[][] arrays = new double[2][amountOfAttributes];
 
+		// modify arrays if isNormalizing() is true, otherwise return arrays fill with zeros
 		if (this.isNormalizing()) {
 
+		    // each attribute has a translation & scaling, corresponding to a column of arrays
 			for (int i = 0; i < amountOfAttributes; i++) {
+			    // record max and min values, prepare to calculation translation & scaling
 				double max = - Double.MAX_VALUE;
 				double min = Double.MAX_VALUE;
 
@@ -271,6 +291,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 						max = ((Double) attribute).compareTo(max) > 0 ? (double) attribute : max;
 						min = ((Double) attribute).compareTo(min) < 0 ? (double) attribute : min;
 					} else {
+					    // attribute is String
 						max = 0;
 						min = 0;
 					}
@@ -278,6 +299,9 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 				arrays[0][i] = min; // translation
                 arrays[1][i] = max - min; // scaling
+
+                // sometimes attribute has type double, but only 1 value, so max equals min
+                // but this leads to a scaling of 0, which causes error, so manually change it to 1
                 if (max == min)
                     arrays[1][i] = 1;
 
