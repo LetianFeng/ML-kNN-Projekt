@@ -26,90 +26,122 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected void learnModel(List<List<Object>> data) {
+	    // save the data in the object as an attribute
 		this.traindata = data;
 	}
 
 	@Override
 	protected Map<Object, Double> getUnweightedVotes(List<Pair<List<Object>, Double>> subset) {
-
+        // initialize a map for result
+        // its entry is <class attribute, vote>
 	    Map<Object, Double> result = new HashMap<>();
 
-	    // get class attribute in nearest train data & put into the result map
+	    // get all kind of class attributes in the nearest train data subset
+        // put them into the result map with their votes
 	    for (Pair<List<Object>, Double> pair : subset){
+	        // get class attribute of an nearest instance
 	        Object classAttribute = pair.getA().get(this.getClassAttribute());
 
 	        // if class attribute doesn't exist in  the result map
+            // put it into the map with the value vote 1
 	        if (!result.containsKey(classAttribute))
 	            result.put(classAttribute, 1.0);
-	        // if already existed in the map, then add 1 to the entry-value
+	        // if already existed in the map, then add 1 to the existing vote
 	        else
 	            result.put(classAttribute, result.get(classAttribute) + 1);
         }
 
+        // return the map
         return result;
 	}
 
 	@Override
 	protected Map<Object, Double> getWeightedVotes(List<Pair<List<Object>, Double>> subset) {
-
+        // initialize a map for result
+        // its entry is <class attribute, vote>
 		Map<Object, Double> result = new HashMap<>();
+
+		// initialize 2 local variable for calculating the weight to be added on the vote
 		double distance;
 		double weight;
 
 
-		// get class attribute in nearest train data & put into the result map
+        // get all kind of class attributes in the nearest train data subset
+        // put them into the result map with their votes
 		for (Pair<List<Object>, Double> pair : subset){
+            // get class attribute of an nearest instance
 			Object classAttribute = pair.getA().get(this.getClassAttribute());
 
+			// get distance of an instance
 			distance = pair.getB();
+
+			// because of double calculation in java can be inprecise
+            // so distances less than 0.0000001 are considered as 0
 			if (distance < 0.0000001)
+			    // for distance 0, add fixed weight 999.99
 				weight = 999.99;
 			else
+			    // for other distances, add weight of inverse distance
 				weight = 1 / distance;
 
-			// if class attribute doesn't exist in  the result map
+			// if class attribute doesn't exist in the result map
+            // put it into the map with the value weight
 			if (!result.containsKey(classAttribute))
 				result.put(classAttribute, weight);
 
-			// if already existed in the map, then add 1 to the entry-value
+			// if already existed in the map, then add weight to the existing vote
 			else
 				result.put(classAttribute, result.get(classAttribute) + weight);
 		}
 
+		// return the map
 		return result;
 	}
 
 	@Override
 	protected Object getWinner(Map<Object, Double> votes) {
+	    // initialize local variable for max vote & corresponding attribute
 	    double maxVote = 0;
         Object maxAttribute = null;
-	    Map<Object, Double> winners = new HashMap<>();
+        // for the case of multiple attributes with the same max vote
+        // initialize a list, in which all attributes with the max vote are saved
+	    List<Object> winners = new LinkedList<>();
 
-	    // find the class attribute with biggest vote in the map
+	    // find the class attribute(s) with max vote in the map
 	    for (Map.Entry<Object, Double> entry : votes.entrySet()) {
 	        // save first attribute & vote in maxAttribute & maxVote
-            // or if a entry has larger vote, update them
             if (maxAttribute == null) {
                 maxVote = entry.getValue();
                 maxAttribute = entry.getKey();
-                winners.put(entry.getKey(), entry.getValue());
+                winners.add(entry.getKey());
+            // for following attributes
+            } else {
+                // attribute with less vote than max vote, do nothing
+                if (entry.getValue() < maxVote)
+                    continue;
+                // attribute with larger vote than max vote
+                // or equal vote as the max vote
+                else {
+                    // larger vote, clean the list, update max vote
+                    // after that, add attribute to list
+                    if (entry.getValue() > maxVote) {
+                        maxVote = entry.getValue();
+                        maxAttribute = entry.getKey();
+                        winners = new LinkedList<>();
+                    }
+                    // equal vote, only add attribute to list
+                    winners.add(entry.getKey());
+                }
             }
-            if (entry.getValue() < maxVote)
-                continue;
-            if (entry.getValue() > maxVote) {
-                maxVote = entry.getValue();
-                maxAttribute = entry.getKey();
-                winners = new HashMap<>();
-            }
-            winners.put(entry.getKey(), entry.getValue());
         }
 
+        // if multiple max attributes, randomly select one & return
+        // otherwise return directly
         if (winners.size() > 1) {
 	        Random rand = new Random();
 	        int n = rand.nextInt(winners.size());
-	        maxAttribute = new LinkedList<Object>(winners.keySet()).get(n);
+	        maxAttribute = winners.get(n);
         }
-
         return maxAttribute;
 	}
 
