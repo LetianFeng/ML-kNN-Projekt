@@ -156,23 +156,23 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected List<Pair<List<Object>, Double>> getNearest(List<Object> data) {
-
-		double[][] norm = this.normalizationScaling();
+        // normalize the traindata
+        // if this.isNormalizing() is false, translation & scaling will be zeros
+	    double[][] norm = this.normalizationScaling();
 		this.translation = norm[0];
 		this.scaling = norm[1];
 
-		List<Pair<List<Object>, Double>> distances = new ArrayList<>();
+		List<Pair<List<Object>, Double>> instances = new ArrayList<>();
 
-		// determineManhattanDistance
+		// calculate distance of instances depending on this.getMetric()
         for (List<Object> trainInstance : this.traindata)
-            if (!data.equals(trainInstance))
-        		if (this.getMetric() == 0)
-					distances.add(new Pair<>(trainInstance, this.determineManhattanDistance(trainInstance, data)));
-        		else
-					distances.add(new Pair<>(trainInstance, this.determineEuclideanDistance(trainInstance, data)));
+            if (this.getMetric() == 0)
+                instances.add(new Pair<>(trainInstance, this.determineManhattanDistance(trainInstance, data)));
+            else
+                instances.add(new Pair<>(trainInstance, this.determineEuclideanDistance(trainInstance, data)));
 
-		// sort the list distances
-		Collections.sort(distances, new Comparator<Pair<List<Object>, Double>>() {
+		// sort the list instances according to their corresponding distances
+		Collections.sort(instances, new Comparator<Pair<List<Object>, Double>>() {
             @Override
             public int compare(Pair<List<Object>, Double> pair1, Pair<List<Object>, Double> pair2) {
                 if (pair1.getB() == pair2.getB())
@@ -183,33 +183,41 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
             }
         });
 
-		// remove the last element till the list has the size as getkNearest()
-		while (distances.size() > this.getkNearest())
-			distances.remove(distances.size() - 1);
-
-//		return distances;
-
+        // initialize a list for result
 		List<Pair<List<Object>, Double>> result = new ArrayList<>();
+
+		// add nearest instances to the list result till the list's size equals this.getNearest()
         while (result.size() < this.getkNearest()) {
-            // get sublist of instances with min distance
-            List<Pair<List<Object>, Double>> subList = minDistances(distances);
+
+            // get sublist of instances with the min distance
+            List<Pair<List<Object>, Double>> subList = minDistances(instances);
+
+            // if size of sublist plus result still not greater than this.getNearest()
+            // add all elements from sublist into the result list & remove them from instances
             if (subList.size() + result.size() <= this.getkNearest()) {
                 result.addAll(subList);
-                distances.removeAll(subList);
+                instances.removeAll(subList);
+            // otherwise only add 1 random element from subList into the result list
+            // and then delete it from instances
             } else {
                 Pair<List<Object>, Double> element = randomElement(subList);
                 result.add(element);
-                distances.remove(element);
+                instances.remove(element);
             }
         }
 
 		return  result;
 	}
 
-    private List<Pair<List<Object>,Double>> minDistances(List<Pair<List<Object>, Double>> distances) {
+    /**
+     * Return sublist of instances with the min distance in the list instances
+     * @param instances list of instances with distance
+     * @return a list of instances with the minimum distance in the input list
+     */
+    private List<Pair<List<Object>,Double>> minDistances(List<Pair<List<Object>, Double>> instances) {
         List<Pair<List<Object>, Double>> subList = new LinkedList<>();
-        double minDistance = distances.get(0).getB();
-        for (Pair<List<Object>, Double> pair : distances) {
+        double minDistance = instances.get(0).getB();
+        for (Pair<List<Object>, Double> pair : instances) {
             if (pair.getB() <= minDistance)
                 subList.add(pair);
         }
@@ -217,6 +225,11 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
         return subList;
     }
 
+    /**
+     * Return 1 element of the input list randomly
+     * @param subList list of instances with distance
+     * @return a random element in the input list
+     */
     private Pair<List<Object>,Double> randomElement(List<Pair<List<Object>, Double>> subList) {
         Random rand = new Random();
         int n = rand.nextInt(subList.size());
@@ -227,23 +240,27 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	protected double determineManhattanDistance(List<Object> instance1, List<Object> instance2) {
 
 	    double distance = 0.0;
-
+        // initialize 2 list for train & test instance
         List<Object> trainInstance = new ArrayList<>();
         List<Object> testInstance = new ArrayList<>();
 
         // remove class attribute from train & test instance
+        // sometimes train instance has 1 more attribute: class attribute
+        // instance1 is the train instance
         if (instance1.size() > instance2.size()) {
 
 			trainInstance.addAll(instance1);
 			testInstance.addAll(instance2);
 
 			trainInstance.remove(this.getClassAttribute());
+        // instance 2 is the train instance
 		} else if (instance1.size() < instance2.size()) {
 
 			trainInstance.addAll(instance2);
 			testInstance.addAll(instance1);
 
 			trainInstance.remove(this.getClassAttribute());
+        // both instances have the class attribute
 		} else {
         	trainInstance.addAll(instance1);
 			testInstance.addAll(instance2);
@@ -252,16 +269,22 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 			testInstance.remove(this.getClassAttribute());
 		}
 
+		// calculate distance of every attribute between both instances
+        // then calculate sum of distance
         for (int i = 0; i < trainInstance.size(); i++) {
             Object trainAttribute = trainInstance.get(i);
             Object testAttribute = testInstance.get(i);
 
-            // if symbolic attribute, use 0/1 distance, otherwise abs(v1 -v2)
+            // if symbolic attribute, use 0/1 distance
             if (trainAttribute instanceof String) {
                 if (!trainAttribute.equals(testAttribute))
                     distance += 1;
+            // otherwise abs(v1 -v2)
             } else {
+                // use normalized attributes if this.isNormalizing() is true
             	if (this.isNormalizing()) {
+            	    // because of deletion of class attribute
+                    // attributes after it should be shifted right for 1 position
             	    if (i < this.getClassAttribute()) {
                         trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
                         testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
@@ -271,6 +294,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
                     }
                 }
 
+                // calculate sum
                 distance += Math.abs((Double)trainAttribute - (Double)testAttribute);
             }
         }
@@ -281,39 +305,52 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 	@Override
 	protected double determineEuclideanDistance(List<Object> instance1, List<Object> instance2) {
 
-		double distance = 0.0;
+        double distance = 0.0;
+        // initialize 2 list for train & test instance
+        List<Object> trainInstance = new ArrayList<>();
+        List<Object> testInstance = new ArrayList<>();
 
-		List<Object> trainInstance = new ArrayList<>();
-		List<Object> testInstance = new ArrayList<>();
+        // remove class attribute from train & test instance
+        // sometimes train instance has 1 more attribute: class attribute
+        // instance1 is the train instance
+        if (instance1.size() > instance2.size()) {
 
-		// remove class attribute from train & test instance
-		if (instance1.size() > instance2.size()) {
+            trainInstance.addAll(instance1);
+            testInstance.addAll(instance2);
 
-			trainInstance.addAll(instance1);
-			testInstance.addAll(instance2);
+            trainInstance.remove(this.getClassAttribute());
+            // instance 2 is the train instance
+        } else if (instance1.size() < instance2.size()) {
 
-			trainInstance.remove(this.getClassAttribute());
-		} else if (instance1.size() < instance2.size()) {
+            trainInstance.addAll(instance2);
+            testInstance.addAll(instance1);
 
-			trainInstance.addAll(instance2);
-			testInstance.addAll(instance1);
+            trainInstance.remove(this.getClassAttribute());
+            // both instances have the class attribute
+        } else {
+            trainInstance.addAll(instance1);
+            testInstance.addAll(instance2);
 
-			trainInstance.remove(this.getClassAttribute());
-		} else {
-			trainInstance.addAll(instance1);
-			testInstance.addAll(instance2);
+            trainInstance.remove(this.getClassAttribute());
+            testInstance.remove(this.getClassAttribute());
+        }
 
-			trainInstance.remove(this.getClassAttribute());
-			testInstance.remove(this.getClassAttribute());
-		}
+        // calculate distance of every attribute between both instances
+        // then calculate sum of distance
+        for (int i = 0; i < trainInstance.size(); i++) {
+            Object trainAttribute = trainInstance.get(i);
+            Object testAttribute = testInstance.get(i);
 
-		for (int i = 0; i < trainInstance.size(); i++) {
-			Object trainAttribute = trainInstance.get(i);
-			Object testAttribute = testInstance.get(i);
-
-			// if symbolic attribute, use 0/1 distance, otherwise abs(v1 -v2)
-			if (trainAttribute instanceof Double) {
+            // if symbolic attribute, use 0/1 distance
+            if (trainAttribute instanceof String) {
+                if (!trainAttribute.equals(testAttribute))
+                    distance += 1;
+                // otherwise abs(v1 -v2)
+            } else {
+                // use normalized attributes if this.isNormalizing() is true
                 if (this.isNormalizing()) {
+                    // because of deletion of class attribute
+                    // attributes after it should be shifted right for 1 position
                     if (i < this.getClassAttribute()) {
                         trainAttribute = ((Double) trainAttribute - translation[i]) / scaling[i];
                         testAttribute = ((Double) testAttribute - translation[i]) / scaling[i];
@@ -322,13 +359,12 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
                         testAttribute = ((Double) testAttribute - translation[i+1]) / scaling[i+1];
                     }
                 }
+
+                // calculate sum
                 distance += Math.abs(Math.pow((Double)trainAttribute - (Double)testAttribute, 2));
-			} else {
-                if (!trainAttribute.equals(testAttribute))
-                    distance += 1;
 			}
 		}
-
+        // calculate square root of the sum
 		distance = Math.sqrt(distance);
 
 		return distance;
@@ -336,6 +372,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	protected double[][] normalizationScaling() {
+
 		int amountOfAttributes = this.traindata.get(0).size();
 		// initialize arrays for translation(arrays[0]) & scaling(arrays[1])
 		double[][] arrays = new double[2][amountOfAttributes];
@@ -349,6 +386,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 				double max = - Double.MAX_VALUE;
 				double min = Double.MAX_VALUE;
 
+				// check every instance for the attribute & update the range of it
 				for (List<Object> instance : this.traindata) {
 					Object attribute = instance.get(i);
 
