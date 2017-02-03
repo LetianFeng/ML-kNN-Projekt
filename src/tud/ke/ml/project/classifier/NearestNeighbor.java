@@ -21,7 +21,7 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 
 	@Override
 	public String getMatrikelNumbers() {
-		return "2441890,2255840,2571142";
+		return "2255840,2441890,2571142";
 	}
 
 	@Override
