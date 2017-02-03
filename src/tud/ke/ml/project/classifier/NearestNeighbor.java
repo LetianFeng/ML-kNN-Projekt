@@ -155,17 +155,41 @@ public class NearestNeighbor extends INearestNeighbor implements Serializable {
 		while (distances.size() > this.getkNearest())
 			distances.remove(distances.size() - 1);
 
-		// TODO change the over while to
-        // List<Pair<List<Object>, Double>> result = new ArrayList<>();
-        // while (result.size() < this.getkNearest())
-        //      get sublist of instances with min distance
-        //      if (sublist.size() + result.size() < this.getkNearest())
-        //          result.addAll(sublist);
-        //      else
-        //          result.add(randomElement(sublist))
+//		return distances;
 
-		return  distances;
+		List<Pair<List<Object>, Double>> result = new ArrayList<>();
+        while (result.size() < this.getkNearest()) {
+            // get sublist of instances with min distance
+            List<Pair<List<Object>, Double>> subList = minDistances(distances);
+            if (subList.size() + result.size() <= this.getkNearest()) {
+                result.addAll(subList);
+                distances.removeAll(subList);
+            } else {
+                Pair<List<Object>, Double> element = randomElement(subList);
+                result.add(element);
+                distances.remove(element);
+            }
+        }
+
+		return  result;
 	}
+
+    private List<Pair<List<Object>,Double>> minDistances(List<Pair<List<Object>, Double>> distances) {
+        List<Pair<List<Object>, Double>> subList = new LinkedList<>();
+        double minDistance = distances.get(0).getB();
+        for (Pair<List<Object>, Double> pair : distances) {
+            if (pair.getB() <= minDistance)
+                subList.add(pair);
+        }
+
+        return subList;
+    }
+
+    private Pair<List<Object>,Double> randomElement(List<Pair<List<Object>, Double>> subList) {
+        Random rand = new Random();
+        int n = rand.nextInt(subList.size());
+        return subList.get(n);
+    }
 
     @Override
 	protected double determineManhattanDistance(List<Object> instance1, List<Object> instance2) {
